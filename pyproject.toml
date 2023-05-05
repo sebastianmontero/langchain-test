@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "langchain-test"
+version = "0.1.0"
+description = "langchain tests"
+authors = ["Sebastian Montero <sebastian.montero@gmail.com>"]
+readme = "README.md"
+packages = [{include = "src"}]
+
+[tool.poetry.dependencies]
+python = ">=3.8.1,<4.0"
+python-dotenv = "^1.0.0"
+langchain = "^0.0.158"
+pinecone-client = "^2.2.1"
+openai = "^0.27.6"
+pinecone-text = "0.1.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
