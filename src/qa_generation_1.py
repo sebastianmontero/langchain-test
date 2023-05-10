@@ -35,7 +35,7 @@ def main():
         temperature=0, openai_api_key=OPENAI_API_KEY, model_name="gpt-4")
     gen_chain = QAGenerateChain.from_llm(llm=llm, verbose=True)
     gen_chain.prompt.output_parser = RegexParser(
-        regex=r"QUESTION: (.*?)\n*ANSWER: (.*)", output_keys=["query", "answer"]
+        regex=r"QUESTION: (.*?)\n*ANSWER: (.*)", output_keys=["input", "answer"]
     )
     # examples = gen_chain.apply_and_parse([{"doc": content}])
     examples = gen_chain.apply_and_parse([{"doc": doc.page_content} for doc in split_docs])

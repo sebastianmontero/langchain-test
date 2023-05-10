@@ -15,7 +15,7 @@ import os
 
 
 
-def governance_expert(model_name: str = "gpt-4",verbose: bool = False)  -> AgentExecutor:
+def governance_expert(model_name: str = "gpt-4", memory_window_size = 5, verbose: bool = False)  -> AgentExecutor:
 
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
@@ -51,7 +51,7 @@ def governance_expert(model_name: str = "gpt-4",verbose: bool = False)  -> Agent
     memory = ConversationBufferWindowMemory(
         # important to align with agent prompt (below)
         memory_key="chat_history",
-        k=5,
+        k=memory_window_size,
         return_messages=True
     )
 
