@@ -25,7 +25,7 @@ def main():
 
     content = docj[0]['div_content']
     # print(content)
-    docs = [Document(page_content=content, metadata={"url":"source.com"})]
+    docs = [Document(page_content=content, metadata={"url":"source.com", "type":"proposals"})]
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=0)
     split_docs = text_splitter.split_documents(docs)
     for i, split_doc in enumerate(split_docs):

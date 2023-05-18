@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 # from langchain.document_loaders import GoogleDriveLoader
 from langchain.chains.conversational_retrieval.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.callbacks import get_openai_callback
-from agents import governance_expert, polkadot_expert, general_expert
+from agents import multiagent_expert
 import json
 
 
@@ -12,10 +12,10 @@ import json
 def main():
     load_dotenv()
 
-    os.environ["LANGCHAIN_TRACING"] = "true"
+    # os.environ["LANGCHAIN_TRACING"] = "true"
 
 
-    agent = general_expert(verbose=True)
+    agent = multiagent_expert(verbose=True)
     # agent = governance_expert()
     # print(agent.agent.llm_chain.prompt)
     while True:

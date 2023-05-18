@@ -13,10 +13,11 @@ pinecone-client = "^2.2.1"
 openai = "^0.27.6"
 pinecone-text = "0.1.1"
 tiktoken = "^0.3.3"
-langchain = "^0.0.162"
-langchain-util = "^0.1.1"
 pandas = "^2.0.1"
 evaluate = "^0.4.0"
+langchain = {path = "../langchain"}
+langchain-util = {path = "../langchain-util", develop = true}
+apify-client = "^1.1.1"
 
 
 [tool.poetry.group.dev.dependencies]

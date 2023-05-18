@@ -16,7 +16,7 @@ import pinecone
 import os
 
 
-# Using the Agent that uses retrieval qa as a tool, it takes care of querying the index
+# Using the single shot Agent that uses retrieval qa as a tool, it takes care of querying the index
 
 def main():
     load_dotenv()
