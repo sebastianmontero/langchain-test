@@ -1,0 +1,4 @@
+version: '3.6'
+services:
+  postgres:
+    image: sebastianmontero/hashed-faucet-db-dev:latest
