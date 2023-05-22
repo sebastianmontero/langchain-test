@@ -16,7 +16,7 @@ from langchain.prompts import PromptTemplate
 from langchain.agents import create_sql_agent
 from langchain.agents.agent_toolkits import SQLDatabaseToolkit
 from langchain.sql_database import SQLDatabase
-
+from sqlalchemy import event
 
 import pinecone 
 
@@ -253,6 +253,102 @@ def general_expert(model_name: str = "gpt-4", memory_window_size = 5, similarity
     return agent
 
 def multiagent_expert(model_name: str = "gpt-4", memory_window_size = 5, similarity_threshold:float = 0.76, verbose: bool = False)  -> AgentExecutor:
+
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+    PINECONE_API_ENV = os.getenv("PINECONE_API_ENV")
+    PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+    DB_URL = os.getenv("DB_URL")
+
+    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    pinecone.init(
+        api_key=PINECONE_API_KEY,  # find at app.pinecone.io
+        environment=PINECONE_API_ENV  # next to api key in console
+    )
+    vector_store = Pinecone.from_existing_index(
+        index_name=PINECONE_INDEX_NAME, embedding=embeddings)
+    llm = ChatOpenAI(
+        temperature=0, openai_api_key=OPENAI_API_KEY, model_name=model_name)
+    
+    tools = load_tools(tool_names=['llm-math'], llm=llm)
+
+    tools.append(_get_retrieval_tool(
+        llm=llm,
+        vector_store=vector_store,
+        name="Polkadot Wiki",
+        description=RETRIEVAL_TOOL_TEMPALTE.format(
+            source_description="polkadot, it has information on how it works, how to build on it and how to setup nodes and run the network"
+        ),
+        filter={
+            "type":"docs"
+        },
+        verbose=verbose
+    ))
+
+    tools.append(_get_retrieval_tool(
+        llm=llm,
+        vector_store=vector_store,
+        name="Proposals Vector DB",
+        description=RETRIEVAL_TOOL_TEMPALTE.format(
+            source_description="the content of proposals"
+        ),
+        filter={
+            "type":"proposals"
+        },
+        verbose=verbose
+    ))
+
+    db = SQLDatabase.from_uri(DB_URL)
+    toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+
+    music_agent = create_sql_agent(
+        llm=llm,
+        toolkit=toolkit,
+        verbose=True
+    )
+
+    tools.append(AgentAsTool(
+        name="Proposals SQL DB",
+        description="""Use this tool to answer user questions about information related to proposals but not their content and about the proposals database structure, you should pass
+        in the user question related to the proposal with as little modification as possible.
+        This tool can also be used for follow up questions from the user.""",
+        agent=music_agent
+    ))
+
+    memory = ConversationBufferWindowMemory(
+        # important to align with agent prompt (below)
+        memory_key="chat_history",
+        k=memory_window_size,
+        return_messages=True
+    )
+
+    agent = initialize_agent(
+        agent="chat-conversational-react-description",
+        llm=llm,
+        tools=tools,
+        verbose=verbose,
+        max_iterations=2,
+        early_stopping_method="generate",
+        memory=memory)
+
+    sys_msg = (
+        "You are an expert on the polkadot blockchain, you are able to answer user questions "
+        "in an easy to understand way always providing the important details."
+        "When users ask information you refer to the relevant tools "
+        "when needed, allowing you to answer questions about polkadot.\n"
+        "When external information is used you MUST add your sources to the end "
+        "of responses, the format should be: SOURCES:[s1,s2,...]"
+    )
+
+    prompt = agent.agent.create_prompt(
+        system_message=sys_msg,
+        tools=tools
+    )
+    agent.agent.llm_chain.prompt = prompt
+
+    return agent
+
+def multiagent_expert_2(model_name: str = "gpt-4", memory_window_size = 5, similarity_threshold:float = 0.76, verbose: bool = False)  -> AgentExecutor:
 
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
