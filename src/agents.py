@@ -285,18 +285,18 @@ def multiagent_expert(model_name: str = "gpt-4", memory_window_size = 5, similar
         verbose=verbose
     ))
 
-    tools.append(_get_retrieval_tool(
-        llm=llm,
-        vector_store=vector_store,
-        name="Proposals Vector DB",
-        description=RETRIEVAL_TOOL_TEMPALTE.format(
-            source_description="the content of proposals"
-        ),
-        filter={
-            "type":"proposals"
-        },
-        verbose=verbose
-    ))
+    # tools.append(_get_retrieval_tool(
+    #     llm=llm,
+    #     vector_store=vector_store,
+    #     name="Proposals Vector DB",
+    #     description=RETRIEVAL_TOOL_TEMPALTE.format(
+    #         source_description="the content of proposals"
+    #     ),
+    #     filter={
+    #         "type":"proposals"
+    #     },
+    #     verbose=verbose
+    # ))
 
     db = SQLDatabase.from_uri(DB_URL)
     toolkit = SQLDatabaseToolkit(db=db, llm=llm)
@@ -309,7 +309,10 @@ def multiagent_expert(model_name: str = "gpt-4", memory_window_size = 5, similar
 
     tools.append(AgentAsTool(
         name="Proposals SQL DB",
-        description="""Use this tool to answer user questions about information related to proposals but not their content and about the proposals database structure, you should pass
+        # description="""Use this tool to answer user questions about information related to proposals but not their content and about the proposals database structure, you should pass
+        # in the user question related to the proposal with as little modification as possible.
+        # This tool can also be used for follow up questions from the user.""",
+        description="""Use this tool to answer user questions about information related to proposals and the comments and reactions to them, you should pass
         in the user question related to the proposal with as little modification as possible.
         This tool can also be used for follow up questions from the user.""",
         agent=music_agent

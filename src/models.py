@@ -6,7 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, Session
 import uuid
 
-Base = declarative_base(metadata=MetaData(schema='governance'))
+Base = declarative_base()
 
 
 class Network(Base):
