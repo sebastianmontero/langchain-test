@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy import Index
-from sqlalchemy import Column, ForeignKey, BigInteger, Boolean, Text, String, DateTime, SmallInteger, MetaData
+from sqlalchemy import Column, ForeignKey, BigInteger, Boolean, Text, String, DateTime, SmallInteger, MetaData, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, Session
@@ -8,6 +8,13 @@ import uuid
 
 Base = declarative_base()
 
+
+class RecordState(Base):
+    PENDING = 1
+    PROCESSED = 2
+    __tablename__ = 'record_state'
+    record_state_id = Column(SmallInteger, primary_key=True)
+    record_state = Column(String(50), nullable=False)
 
 class Network(Base):
     __tablename__ = 'network'
@@ -78,6 +85,7 @@ class GovernanceProposal(Base):
     proposer_address = Column(String(50), nullable=False)
     title = Column(Text, nullable=True)
     content = Column(Text, nullable=True)
+    content_length = Column(Integer, nullable=False)
     summary = Column(Text, nullable=True)
     governance_proposal_type_id = Column(String(70), ForeignKey(
         'governance_proposal_type.governance_proposal_type_id'), nullable=False)
@@ -85,9 +93,11 @@ class GovernanceProposal(Base):
     last_edited_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
+    record_state_id = Column(SmallInteger, ForeignKey('record_state.record_state_id'), nullable=False)
     network = relationship('Network')
     user = relationship('User')
     governance_proposal_type = relationship('GovernanceProposalType')
+    record_state = relationship('RecordState')
 
     @classmethod
     def from_dict(cls, doc: dict) -> "GovernanceProposal":
@@ -99,12 +109,14 @@ class GovernanceProposal(Base):
             proposer_address=doc["proposer_address"],
             title=doc["title"] if "title" in doc and doc["title"] else None,
             content=doc["content"],
+            content_length= len(doc["content"]) if "content" in doc and doc["content"] else 0,
             summary=None,
             governance_proposal_type_id=doc["governance_proposal_type_id"],
             last_comment_at=doc.get("last_comment_at", None),
             last_edited_at=doc.get("last_edited_at", None),
             created_at=doc["created_at"],
-            updated_at=doc.get("updated_at", None)
+            updated_at=doc.get("updated_at", None),
+            record_state_id=RecordState.PENDING
         )
 
 
@@ -117,11 +129,14 @@ class Comment(Base):
     content = Column(Text, nullable=False)
     governance_proposal_id = Column(UUID(as_uuid=True), ForeignKey(
         'governance_proposal.governance_proposal_id'), nullable=False)
-    sentiment = Column(SmallInteger, nullable=False)
+    sentiment = Column(SmallInteger, nullable=True)
+    sentiment_confidence = Column(SmallInteger, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
+    record_state_id = Column(SmallInteger, ForeignKey('record_state.record_state_id'), nullable=False)
     user = relationship('User')
     governance_proposal = relationship('GovernanceProposal')
+    record_state = relationship('RecordState')
 
     @classmethod
     def from_dict(cls, doc: dict) -> "Comment":
@@ -132,9 +147,11 @@ class Comment(Base):
             user_address=doc.get("default_address", None),
             content=doc["content"],
             governance_proposal_id=doc["governance_proposal_id"],
-            sentiment=0,
+            sentiment=None,
+            sentiment_confidence=None,
             created_at=doc["created_at"],
-            updated_at=doc.get("updated_at", None)
+            updated_at=doc.get("updated_at", None),
+            record_state_id=RecordState.PENDING
         )
 
 
@@ -178,6 +195,8 @@ index_last_edited_at = Index(
     'governance_proposal_last_edited_at_idx', GovernanceProposal.last_edited_at)
 index_created_at = Index(
     'governance_proposal_created_at_idx', GovernanceProposal.created_at)
+index_governance_proposal_content_length = Index(
+    'governance_proposal_content_length_idx', GovernanceProposal.content_length)
 index_updated_at = Index(
     'governance_proposal_updated_at_idx', GovernanceProposal.updated_at)
 index_title = Index('governance_proposal_title_idx', GovernanceProposal.title)
@@ -185,7 +204,8 @@ index_comment_logical_id = Index(
     'comment_logical_id_idx', Comment.comment_logical_id)
 index_comment_user_address = Index(
     'comment_user_address_idx', Comment.user_address)
-index_comment_sentiment = Index('comment_sentiment_idx', Comment.sentiment)
+index_comment_sentiment_sentiment_confidence = Index('comment_sentiment_sentiment_confidence_idx', Comment.sentiment, Comment.sentiment_confidence)
+
 index_comment_created_at = Index('comment_created_at_idx', Comment.created_at)
 index_comment_updated_at = Index('comment_updated_at_idx', Comment.updated_at)
 index_reaction_user_address = Index(

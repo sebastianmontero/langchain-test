@@ -1,8 +1,8 @@
 """Initial database
 
-Revision ID: ec8a071f50a8
+Revision ID: b624da80421b
 Revises: 
-Create Date: 2023-05-22 09:09:21.934014
+Create Date: 2023-05-23 19:29:25.421757
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'ec8a071f50a8'
+revision = 'b624da80421b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -28,6 +28,11 @@ def upgrade() -> None:
     sa.Column('network', sa.String(length=100), nullable=False),
     sa.PrimaryKeyConstraint('network_id')
     )
+    op.create_table('record_state',
+    sa.Column('record_state_id', sa.SmallInteger(), nullable=False),
+    sa.Column('record_state', sa.String(length=50), nullable=False),
+    sa.PrimaryKeyConstraint('record_state_id')
+    )
     op.create_table('user',
     sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('username', sa.Text(), nullable=False),
@@ -43,17 +48,21 @@ def upgrade() -> None:
     sa.Column('proposer_address', sa.String(length=50), nullable=False),
     sa.Column('title', sa.Text(), nullable=True),
     sa.Column('content', sa.Text(), nullable=True),
+    sa.Column('content_length', sa.Integer(), nullable=False),
     sa.Column('summary', sa.Text(), nullable=True),
     sa.Column('governance_proposal_type_id', sa.String(length=70), nullable=False),
     sa.Column('last_comment_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('last_edited_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('record_state_id', sa.SmallInteger(), nullable=False),
     sa.ForeignKeyConstraint(['governance_proposal_type_id'], ['governance_proposal_type.governance_proposal_type_id'], ),
     sa.ForeignKeyConstraint(['network_id'], ['network.network_id'], ),
+    sa.ForeignKeyConstraint(['record_state_id'], ['record_state.record_state_id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
     sa.PrimaryKeyConstraint('governance_proposal_id')
     )
+    op.create_index('governance_proposal_content_length_idx', 'governance_proposal', ['content_length'], unique=False)
     op.create_index('governance_proposal_created_at_idx', 'governance_proposal', ['created_at'], unique=False)
     op.create_index('governance_proposal_last_comment_at_idx', 'governance_proposal', ['last_comment_at'], unique=False)
     op.create_index('governance_proposal_last_edited_at_idx', 'governance_proposal', ['last_edited_at'], unique=False)
@@ -68,16 +77,19 @@ def upgrade() -> None:
     sa.Column('user_address', sa.Text(), nullable=True),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('governance_proposal_id', sa.UUID(), nullable=False),
-    sa.Column('sentiment', sa.SmallInteger(), nullable=False),
+    sa.Column('sentiment', sa.SmallInteger(), nullable=True),
+    sa.Column('sentiment_confidence', sa.SmallInteger(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('record_state_id', sa.SmallInteger(), nullable=False),
     sa.ForeignKeyConstraint(['governance_proposal_id'], ['governance_proposal.governance_proposal_id'], ),
+    sa.ForeignKeyConstraint(['record_state_id'], ['record_state.record_state_id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
     sa.PrimaryKeyConstraint('comment_id')
     )
     op.create_index('comment_created_at_idx', 'comment', ['created_at'], unique=False)
     op.create_index('comment_logical_id_idx', 'comment', ['comment_logical_id'], unique=False)
-    op.create_index('comment_sentiment_idx', 'comment', ['sentiment'], unique=False)
+    op.create_index('comment_sentiment_sentiment_confidence_idx', 'comment', ['sentiment', 'sentiment_confidence'], unique=False)
     op.create_index('comment_updated_at_idx', 'comment', ['updated_at'], unique=False)
     op.create_index('comment_user_address_idx', 'comment', ['user_address'], unique=False)
     op.create_table('reaction',
@@ -111,7 +123,7 @@ def downgrade() -> None:
     op.drop_table('reaction')
     op.drop_index('comment_user_address_idx', table_name='comment')
     op.drop_index('comment_updated_at_idx', table_name='comment')
-    op.drop_index('comment_sentiment_idx', table_name='comment')
+    op.drop_index('comment_sentiment_sentiment_confidence_idx', table_name='comment')
     op.drop_index('comment_logical_id_idx', table_name='comment')
     op.drop_index('comment_created_at_idx', table_name='comment')
     op.drop_table('comment')
@@ -122,9 +134,11 @@ def downgrade() -> None:
     op.drop_index('governance_proposal_last_edited_at_idx', table_name='governance_proposal')
     op.drop_index('governance_proposal_last_comment_at_idx', table_name='governance_proposal')
     op.drop_index('governance_proposal_created_at_idx', table_name='governance_proposal')
+    op.drop_index('governance_proposal_content_length_idx', table_name='governance_proposal')
     op.drop_table('governance_proposal')
     op.drop_index('user_username_idx', table_name='user')
     op.drop_table('user')
+    op.drop_table('record_state')
     op.drop_table('network')
     op.drop_table('governance_proposal_type')
     # ### end Alembic commands ###
