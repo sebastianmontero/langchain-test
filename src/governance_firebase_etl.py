@@ -143,7 +143,7 @@ def load_networks():
 def resolve_user_id(doc: dict, session: Session) -> BigInteger:
     user_id = doc["user_id"] if "user_id" in doc else doc.get("author_id", None)
     if user_id:
-        user = User.find_by_user_id(user_id, session)
+        user = User.find_by_id(user_id, session)
     else:
         # print(doc)
         user = User.find_by_username(doc["username"], session)

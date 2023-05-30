@@ -1,1 +1,0 @@
-"""Chain for determining the sentiment of a series of documents."""

@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy import Index
-from sqlalchemy import Column, ForeignKey, BigInteger, Boolean, Text, String, DateTime, SmallInteger, MetaData, Integer
+from sqlalchemy import Column, ForeignKey, BigInteger, Boolean, Text, String, DateTime, SmallInteger, MetaData, Integer, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, Session
@@ -49,20 +49,20 @@ class User(Base):
             raise LookupError(f"User with username: {username} not found")
 
     @classmethod
-    def find_by_user_id(cls, user_id: BigInteger, session: Session) -> Optional["User"]:
+    def find_by_id(cls, user_id: BigInteger, session: Session) -> Optional["User"]:
         return session.query(User).filter_by(user_id=user_id).first()
 
     @classmethod
-    def get_by_user_id(cls, user_id: BigInteger, session: Session) -> "User":
-        user = cls.find_by_user_id(user_id, session)
+    def get_by_id(cls, user_id: BigInteger, session: Session) -> "User":
+        user = cls.find_by_id(user_id, session)
         if user:
             return user
         else:
             raise LookupError(f"User with user_id: {user_id} not found")
 
     @classmethod
-    def get_by_user_id(cls, user_id: BigInteger, session: Session) -> "User":
-        user = cls.find_by_user_id(user_id, session)
+    def get_by_id(cls, user_id: BigInteger, session: Session) -> "User":
+        user = cls.find_by_id(user_id, session)
         if user:
             return user
         else:
@@ -73,6 +73,7 @@ class GovernanceProposalType(Base):
     __tablename__ = 'governance_proposal_type'
     governance_proposal_type_id = Column(String(70), primary_key=True)
     governance_proposal_type_name = Column(String(70), nullable=False)
+
 
 
 class GovernanceProposal(Base):
@@ -87,6 +88,8 @@ class GovernanceProposal(Base):
     content = Column(Text, nullable=True)
     content_length = Column(Integer, nullable=False)
     summary = Column(Text, nullable=True)
+    reward = Column(Numeric(precision=38, scale=0), nullable=True)
+    status = Column(String(50), nullable=True)
     governance_proposal_type_id = Column(String(70), ForeignKey(
         'governance_proposal_type.governance_proposal_type_id'), nullable=False)
     last_comment_at = Column(DateTime(timezone=True))
@@ -118,6 +121,26 @@ class GovernanceProposal(Base):
             updated_at=doc.get("updated_at", None),
             record_state_id=RecordState.PENDING
         )
+    
+    @classmethod
+    def find_by_id(cls, governance_proposal_id: UUID, session: Session) -> Optional["GovernanceProposal"]:
+        return session.query(GovernanceProposal).filter_by(governance_proposal_id=governance_proposal_id).first()
+    
+    @classmethod
+    def find_by_network_and_type(cls, network_id: str, governance_proposal_type_id: str, session: Session) -> Optional["GovernanceProposal"]:
+        return session.query(GovernanceProposal).filter_by(network_id=network_id, governance_proposal_type_id=governance_proposal_type_id).all()
+
+    @classmethod
+    def get_by_id(cls, governance_proposal_id: UUID, session: Session) -> "GovernanceProposal":
+        gp = cls.find_by_id(governance_proposal_id, session)
+        if gp:
+            return gp
+        else:
+            raise LookupError(f"Governance proposal with id: {governance_proposal_id} not found")
+        
+    @property
+    def get_path(self) -> str:
+        return f"{self.network_id}/{self.governance_proposal_type_id}/{self.governance_proposal_logical_id}"
 
 
 class Comment(Base):
@@ -197,6 +220,10 @@ index_created_at = Index(
     'governance_proposal_created_at_idx', GovernanceProposal.created_at)
 index_governance_proposal_content_length = Index(
     'governance_proposal_content_length_idx', GovernanceProposal.content_length)
+index_governance_proposal_status = Index(
+    'governance_proposal_status_idx', GovernanceProposal.status)
+index_governance_proposal_reward = Index(
+    'governance_proposal_reward_idx', GovernanceProposal.reward)
 index_updated_at = Index(
     'governance_proposal_updated_at_idx', GovernanceProposal.updated_at)
 index_title = Index('governance_proposal_title_idx', GovernanceProposal.title)

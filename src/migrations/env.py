@@ -69,6 +69,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            compare_type=True
             # version_table_schema=target_metadata.schema,
             # include_schemas=True
         )

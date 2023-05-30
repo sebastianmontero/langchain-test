@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 # from langchain.document_loaders import GoogleDriveLoader
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
-from chains import SentimentChain
+from langchain_util.chains import SentimentChain
 from  langchain.schema import Document
 
 import os
