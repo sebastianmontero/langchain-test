@@ -12,7 +12,8 @@ import os
 import re
 import json
 from langchain.document_loaders import GoogleDriveLoader
-from scrapers import GoogleDocScraper, GoogleDriveFileScraper, WebPageScraper
+from scrapers import GoogleNativeDocScraper, GoogleExternalDocScraper, GoogleDriveFileScraper, WebPageScraper
+from google_doc_client import GoogleDocClient
 
 
 class GDriveUrlType(Enum):
@@ -27,7 +28,8 @@ def main():
     # result = get_file_from_drive(f"https://drive.google.com/file/d/1nGdzd8Pyc-er0qIiON_K3EAiQzvQjKCz/view")
     # text = extract_text_from_pdf(result["contents"])
     # extract_text_from_google_doc("https://docs.google.com/document/d/1iYOIe_pyOdnV27hUA6FToWVSs7uUNHxIm5bA3KrMAE8/edit")
-    extract_text_from_google_drive_file("https://drive.google.com/file/d/1nGdzd8Pyc-er0qIiON_K3EAiQzvQjKCz/view")
+    extract_text_from_external_google_doc("https://docs.google.com/document/d/1X4aDPRu5p6TkilBcf4OorTe_PdHjhx7w")
+    # extract_text_from_google_drive_file("https://drive.google.com/file/d/1nGdzd8Pyc-er0qIiON_K3EAiQzvQjKCz/view")
     # extract_text_from_web_page("https://python.langchain.com/en/latest/modules/indexes/document_loaders/examples/google_drive.html")
     # print(text)
 
@@ -38,11 +40,26 @@ def extract_text_from_web_page(url):
     print(scraper.get_content(url))
 
 def extract_text_from_google_doc(url):
-    scraper = GoogleDocScraper(
-        service_account_key="/home/sebastian/Documents/hashed/gcloud/keys/iasc-annular-form-334721-c28badd5f7aa.json",
+    google_doc_client = GoogleDocClient(
+        service_account_key="/home/sebastian/Documents/hashed/gcloud/keys/gdrive-read-service-account-annular-form-334721-dc3cabef7d11.json"
+    )
+    scraper = GoogleNativeDocScraper(
+        google_doc_client=google_doc_client
     )
     if not scraper.can_handle(url):
         raise ValueError(f"Google Doc Scraper can not handle url: {url}")
+    
+    print(scraper.get_content(url))
+
+def extract_text_from_external_google_doc(url):
+    google_doc_client = GoogleDocClient(
+        service_account_key="/home/sebastian/Documents/hashed/gcloud/keys/gdrive-read-service-account-annular-form-334721-dc3cabef7d11.json"
+    )
+    scraper = GoogleExternalDocScraper(
+        google_doc_client=google_doc_client
+    )
+    if not scraper.can_handle(url):
+        raise ValueError(f"Google Doc external Scraper can not handle url: {url}")
     
     print(scraper.get_content(url))
 

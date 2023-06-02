@@ -2,6 +2,7 @@
 import requests
 from urllib.parse import urlparse
 import re
+from typing import Set
 
 def get_content_type(url: str) -> str:
     response = requests.get(url, stream=True)
@@ -32,3 +33,7 @@ def to_dict(l: list, d: dict = None) -> dict:
     for v in l:
         d[v] = True
     return d
+
+def extract_urls(text: str) -> Set[str]:
+    url_pattern = re.compile(r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()\[\]<>]+|\(([^\s()\[\]<>]+|(\([^\s()\[\]<>]+\)))*\))+(?:\(([^\s()\[\]<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))")
+    return set(map(lambda url: url[0], re.findall(url_pattern, text)))

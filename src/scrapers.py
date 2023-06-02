@@ -1,21 +1,15 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
-from pydantic import BaseModel, validator, root_validator
+from pydantic import BaseModel, root_validator
 from urllib.parse import urlparse
 from io import BytesIO
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaIoBaseDownload
-from google.oauth2 import service_account
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List
 import requests
 from readers import ReaderFactory
 from langchain.utils import get_from_dict_or_env
 from utils import get_content_type
-
-
-SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+from google_doc_client import GoogleDocClient
 
 class BaseScarper(ABC, BaseModel):
     
@@ -28,15 +22,20 @@ class BaseScarper(ABC, BaseModel):
         """Gets the text from the resource pointed by the url"""
 
 
-class GoogleDocScraper(BaseScarper):
-    service_account_key: Path
+class GoogleNativeDocScraper(BaseScarper):
+    google_doc_client: GoogleDocClient
 
-    @validator("service_account_key")
-    def validate_service_account_key(cls, v: Any, **kwargs: Any) -> Any:
-        """Validate that service_account_key exists."""
-        if not v.exists():
-            raise ValueError(f"service_account_key {v} does not exist")
-        return v
+    def can_handle(self, url: str) -> bool:
+        """Wether this scraper can handle the provided url"""
+        if url.find("https://docs.google.com/document/d") != -1:
+            return self.google_doc_client.get_content_type(url) == "application/vnd.google-apps.document"
+
+    def get_content(self, url: str) -> str:
+        """Gets the text from the resource pointed by the url"""
+        return self.google_doc_client.get_content(url)
+
+class GoogleExternalDocScraper(BaseScarper):
+    google_doc_client: GoogleDocClient
 
     def can_handle(self, url: str) -> bool:
         """Wether this scraper can handle the provided url"""
@@ -44,43 +43,10 @@ class GoogleDocScraper(BaseScarper):
 
     def get_content(self, url: str) -> str:
         """Gets the text from the resource pointed by the url"""
-        file_id = self.get_file_id(url)
-        creds = service_account.Credentials.from_service_account_file(
-                str(self.service_account_key), scopes=SCOPES
-            )
-        service = build("drive", "v3", credentials=creds)
-
-        service.files().get(fileId=file_id, supportsAllDrives=True).execute()
-        request = service.files().export_media(fileId=file_id, mimeType="text/plain")
-        fh = BytesIO()
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        try:
-            while done is False:
-                status, done = downloader.next_chunk()
-
-        except HttpError as e:
-            if e.resp.status == 404:
-                print("File not found: {}".format(id))
-            else:
-                print("An error occurred: {}".format(e))
-
-        text = fh.getvalue().decode("utf-8")
-        return text
-
-
-    def get_file_id(self, url: str) -> str:
-      """Gets the file ID from a Google Doc URL.
-
-      Args:
-        url: The Google Doc URL.
-
-      Returns:
-        The file ID.
-      """
-
-      parts = urlparse(url)
-      return parts.path.split('/')[3]
+        data = self.google_doc_client.download_file(url)
+        content_type = self.google_doc_client.get_content_type(url)
+        reader = ReaderFactory.get_reader(content_type)
+        return reader.get_content(data)
     
 class FileUrlScraper(BaseScarper):
 
@@ -96,7 +62,7 @@ class FileUrlScraper(BaseScarper):
         # Check if the request was successful
         if response.status_code == 200:
             reader = ReaderFactory.get_reader(response.headers['Content-Type'])
-            return reader.get_content(response.content)
+            return reader.get_content(BytesIO(response.content))
         else:
             response.raise_for_status()
     
@@ -212,3 +178,11 @@ class WebPageScraper(BaseScarper):
             text += item["text"] + "\n\n"
         return text
 
+
+
+def scrape(scrapers: List[BaseScarper], url: str) -> str:
+    for scraper in scrapers:
+        if scraper.can_handle(url):
+            return scraper.get_content(url)
+        
+    raise ValueError("There is no scraper that can handle the url: {url}")

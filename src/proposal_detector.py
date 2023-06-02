@@ -7,9 +7,15 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 import re
 import nltk
+import logging
 
 nltk.download('punkt')
+nltk.download('stopwords')
 
+
+logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
 
 class BaseProposalDetector(ABC, BaseModel):
     
@@ -18,23 +24,24 @@ class BaseProposalDetector(ABC, BaseModel):
         """Wether the document is a proposal"""
 
 
-class KeywordProposalDetector(ABC, BaseModel):
+class KeywordProposalDetector(BaseProposalDetector):
     keywords: set = {'proposal', 'scope', 'objective', 'budget', 'deliverable', 'milestone'}
-    keywords_threshold: float = 0.7
-    title_words_threshold: float = 0.7
+    keywords_weight: float = 1
+    title_words_weight: float = 1.5
     
-    def is_proposal(self, title: str, document: str) -> bool:
+    def is_proposal(self, title: str, document: str) -> float:
         """Wether this scraper can handle the provided url"""
-        title_tokens = set(self.tokenize(title))
-        doc_tokens = self.tokenize(document)
+        title_tokens = set(self._tokenize(title))
+        doc_tokens = self._tokenize(document)
         kwords = to_dict(title_tokens)
         kwords = to_dict(self.keywords, kwords)
         matches = Counter(token for token in doc_tokens if token in kwords)  
         keywords_score = self._score(matches, self.keywords)
-        if keywords_score < self.keywords_threshold:
-           return False
-        title_words_score = self._score(matches, self.title_tokens)
-        return title_words_score >= self.title_words_threshold
+        title_words_score = self._score(matches, title_tokens)
+        logger.debug(f"keywords_score: {keywords_score} title_score: {title_words_score}")
+        logger.debug(f"Counter: {matches}")
+
+        return (keywords_score * self.keywords_weight + title_words_score * self.title_words_weight)/(self.title_words_weight + self.keywords_weight)
         
     
     def _score(self, matches: Counter, kwords: list) -> float:

@@ -16,6 +16,7 @@ class RecordState(Base):
     record_state_id = Column(SmallInteger, primary_key=True)
     record_state = Column(String(50), nullable=False)
 
+
 class Network(Base):
     __tablename__ = 'network'
     network_id = Column(String(50), primary_key=True)
@@ -75,7 +76,6 @@ class GovernanceProposalType(Base):
     governance_proposal_type_name = Column(String(70), nullable=False)
 
 
-
 class GovernanceProposal(Base):
     __tablename__ = 'governance_proposal'
     governance_proposal_id = Column(UUID(as_uuid=True), primary_key=True)
@@ -96,7 +96,8 @@ class GovernanceProposal(Base):
     last_edited_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
-    record_state_id = Column(SmallInteger, ForeignKey('record_state.record_state_id'), nullable=False)
+    record_state_id = Column(SmallInteger, ForeignKey(
+        'record_state.record_state_id'), nullable=False)
     network = relationship('Network')
     user = relationship('User')
     governance_proposal_type = relationship('GovernanceProposalType')
@@ -112,7 +113,8 @@ class GovernanceProposal(Base):
             proposer_address=doc["proposer_address"],
             title=doc["title"] if "title" in doc and doc["title"] else None,
             content=doc["content"],
-            content_length= len(doc["content"]) if "content" in doc and doc["content"] else 0,
+            content_length=len(
+                doc["content"]) if "content" in doc and doc["content"] else 0,
             summary=None,
             governance_proposal_type_id=doc["governance_proposal_type_id"],
             last_comment_at=doc.get("last_comment_at", None),
@@ -121,14 +123,18 @@ class GovernanceProposal(Base):
             updated_at=doc.get("updated_at", None),
             record_state_id=RecordState.PENDING
         )
-    
+
     @classmethod
     def find_by_id(cls, governance_proposal_id: UUID, session: Session) -> Optional["GovernanceProposal"]:
         return session.query(GovernanceProposal).filter_by(governance_proposal_id=governance_proposal_id).first()
-    
+
     @classmethod
     def find_by_network_and_type(cls, network_id: str, governance_proposal_type_id: str, session: Session) -> Optional["GovernanceProposal"]:
         return session.query(GovernanceProposal).filter_by(network_id=network_id, governance_proposal_type_id=governance_proposal_type_id).all()
+
+    @classmethod
+    def find_unprocessed(cls, network_id: str, governance_proposal_type_id: str, session: Session) -> Optional["GovernanceProposal"]:
+        return session.query(GovernanceProposal).filter_by(network_id=network_id, governance_proposal_type_id=governance_proposal_type_id, record_state_id=RecordState.PENDING).all()
 
     @classmethod
     def get_by_id(cls, governance_proposal_id: UUID, session: Session) -> "GovernanceProposal":
@@ -136,8 +142,9 @@ class GovernanceProposal(Base):
         if gp:
             return gp
         else:
-            raise LookupError(f"Governance proposal with id: {governance_proposal_id} not found")
-        
+            raise LookupError(
+                f"Governance proposal with id: {governance_proposal_id} not found")
+
     @property
     def get_path(self) -> str:
         return f"{self.network_id}/{self.governance_proposal_type_id}/{self.governance_proposal_logical_id}"
@@ -156,7 +163,8 @@ class Comment(Base):
     sentiment_confidence = Column(SmallInteger, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
-    record_state_id = Column(SmallInteger, ForeignKey('record_state.record_state_id'), nullable=False)
+    record_state_id = Column(SmallInteger, ForeignKey(
+        'record_state.record_state_id'), nullable=False)
     user = relationship('User')
     governance_proposal = relationship('GovernanceProposal')
     record_state = relationship('RecordState')
@@ -200,7 +208,7 @@ class Reaction(Base):
             governance_proposal_id=doc["governance_proposal_id"],
             user_id=doc["user_id"],
             user_address=doc.get("default_address", None),
-            reaction= 1 if doc["reaction"] == "👍" else -1,
+            reaction=1 if doc["reaction"] == "👍" else -1,
             created_at=doc["created_at"],
             updated_at=doc.get("updated_at", None)
         )
@@ -231,7 +239,8 @@ index_comment_logical_id = Index(
     'comment_logical_id_idx', Comment.comment_logical_id)
 index_comment_user_address = Index(
     'comment_user_address_idx', Comment.user_address)
-index_comment_sentiment_sentiment_confidence = Index('comment_sentiment_sentiment_confidence_idx', Comment.sentiment, Comment.sentiment_confidence)
+index_comment_sentiment_sentiment_confidence = Index(
+    'comment_sentiment_sentiment_confidence_idx', Comment.sentiment, Comment.sentiment_confidence)
 
 index_comment_created_at = Index('comment_created_at_idx', Comment.created_at)
 index_comment_updated_at = Index('comment_updated_at_idx', Comment.updated_at)
