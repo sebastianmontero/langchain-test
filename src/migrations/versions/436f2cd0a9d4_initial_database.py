@@ -1,8 +1,8 @@
 """Initial database
 
-Revision ID: b624da80421b
+Revision ID: 436f2cd0a9d4
 Revises: 
-Create Date: 2023-05-23 19:29:25.421757
+Create Date: 2023-06-04 21:18:23.721060
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b624da80421b'
+revision = '436f2cd0a9d4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -35,7 +35,7 @@ def upgrade() -> None:
     )
     op.create_table('user',
     sa.Column('user_id', sa.BigInteger(), nullable=False),
-    sa.Column('username', sa.Text(), nullable=False),
+    sa.Column('username', sa.String(length=100), nullable=False),
     sa.Column('web3_signup', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('user_id')
     )
@@ -43,13 +43,16 @@ def upgrade() -> None:
     op.create_table('governance_proposal',
     sa.Column('governance_proposal_id', sa.UUID(), nullable=False),
     sa.Column('governance_proposal_logical_id', sa.String(length=100), nullable=False),
+    sa.Column('governance_proposal_path', sa.String(length=100), nullable=False),
     sa.Column('network_id', sa.String(length=50), nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
-    sa.Column('proposer_address', sa.String(length=50), nullable=False),
+    sa.Column('proposer_address', sa.String(length=70), nullable=False),
     sa.Column('title', sa.Text(), nullable=True),
     sa.Column('content', sa.Text(), nullable=True),
     sa.Column('content_length', sa.Integer(), nullable=False),
     sa.Column('summary', sa.Text(), nullable=True),
+    sa.Column('reward', sa.Numeric(precision=38, scale=0), nullable=True),
+    sa.Column('status', sa.String(length=50), nullable=True),
     sa.Column('governance_proposal_type_id', sa.String(length=70), nullable=False),
     sa.Column('last_comment_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('last_edited_at', sa.DateTime(timezone=True), nullable=True),
@@ -67,14 +70,17 @@ def upgrade() -> None:
     op.create_index('governance_proposal_last_comment_at_idx', 'governance_proposal', ['last_comment_at'], unique=False)
     op.create_index('governance_proposal_last_edited_at_idx', 'governance_proposal', ['last_edited_at'], unique=False)
     op.create_index('governance_proposal_logical_id_idx', 'governance_proposal', ['governance_proposal_logical_id'], unique=False)
+    op.create_index('governance_proposal_path_idx', 'governance_proposal', ['governance_proposal_path'], unique=False)
     op.create_index('governance_proposal_proposer_address_idx', 'governance_proposal', ['proposer_address'], unique=False)
+    op.create_index('governance_proposal_reward_idx', 'governance_proposal', ['reward'], unique=False)
+    op.create_index('governance_proposal_status_idx', 'governance_proposal', ['status'], unique=False)
     op.create_index('governance_proposal_title_idx', 'governance_proposal', ['title'], unique=False)
     op.create_index('governance_proposal_updated_at_idx', 'governance_proposal', ['updated_at'], unique=False)
     op.create_table('comment',
     sa.Column('comment_id', sa.UUID(), nullable=False),
     sa.Column('comment_logical_id', sa.String(length=100), nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
-    sa.Column('user_address', sa.Text(), nullable=True),
+    sa.Column('user_address', sa.String(length=70), nullable=True),
     sa.Column('content', sa.Text(), nullable=False),
     sa.Column('governance_proposal_id', sa.UUID(), nullable=False),
     sa.Column('sentiment', sa.SmallInteger(), nullable=True),
@@ -97,7 +103,7 @@ def upgrade() -> None:
     sa.Column('reaction_logical_id', sa.String(length=100), nullable=False),
     sa.Column('governance_proposal_id', sa.UUID(), nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
-    sa.Column('user_address', sa.String(length=50), nullable=True),
+    sa.Column('user_address', sa.String(length=70), nullable=True),
     sa.Column('reaction', sa.SmallInteger(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
@@ -129,7 +135,10 @@ def downgrade() -> None:
     op.drop_table('comment')
     op.drop_index('governance_proposal_updated_at_idx', table_name='governance_proposal')
     op.drop_index('governance_proposal_title_idx', table_name='governance_proposal')
+    op.drop_index('governance_proposal_status_idx', table_name='governance_proposal')
+    op.drop_index('governance_proposal_reward_idx', table_name='governance_proposal')
     op.drop_index('governance_proposal_proposer_address_idx', table_name='governance_proposal')
+    op.drop_index('governance_proposal_path_idx', table_name='governance_proposal')
     op.drop_index('governance_proposal_logical_id_idx', table_name='governance_proposal')
     op.drop_index('governance_proposal_last_edited_at_idx', table_name='governance_proposal')
     op.drop_index('governance_proposal_last_comment_at_idx', table_name='governance_proposal')

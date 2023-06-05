@@ -117,6 +117,7 @@ def load_networks():
                   doc["network_id"] = network_id
                   doc["governance_proposal_type_id"] = governance_proposal_type_id
                   doc["user_id"] = resolve_user_id(doc, session)
+                  doc["governance_proposal_path"] = f"{network_id}/{governance_proposal_type_id}/{doc['id']}"
                   governance_proposal = GovernanceProposal.from_dict(doc)
                   session.add(governance_proposal)
                   for comment in post.reference.collection("comments").stream():

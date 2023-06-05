@@ -25,9 +25,10 @@ def main():
     PINECONE_API_ENV = os.getenv("PINECONE_API_ENV")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
     SERVICE_ACCOUNT_KEY = os.getenv("SERVICE_ACCOUNT_KEY")
+    PROPOSAL_NAMESPACE = os.getenv("PROPOSAL_NAMESPACE")
 
     llm = ChatOpenAI(
-      openai_api_key=api_key, 
+      openai_api_key=OPENAI_API_KEY, 
       model_name="gpt-4"
       )
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -41,7 +42,10 @@ def main():
             "youtube.com",
             "www.youtube.com",
             "polkadot.subscan.io",
-            "twitter.com"
+            "twitter.com",
+            "diamondstandard.co",
+            "nuponixlabs.com",
+            "www.benzinga.com"
         ]),
         StrContainsFilter(contents_to_filter=[
             "docs.google.com/spreadsheets",
@@ -71,7 +75,7 @@ def main():
 
     proposal_processor = ProposalProcessor(
         db_url=DB_URL,
-        proposal_score_threshold=0.7,
+        proposal_score_threshold=0.68,
         url_filters=url_filters,
         content_filters=content_filters,
         scrapers=scrapers,
@@ -79,10 +83,11 @@ def main():
         document_store= VectorDocumentStore(
             embeddings=embeddings,
             vector_store=Pinecone,
-            index_name=PINECONE_INDEX_NAME
+            index_name=PINECONE_INDEX_NAME,
+            namespace=PROPOSAL_NAMESPACE
 
         ),
-        summarizer=Summarizer(llm=llm)
+        summarizer=Summarizer.proposal_summarizer(llm=llm, verbose=False)
     )
     proposal_processor.process()
 

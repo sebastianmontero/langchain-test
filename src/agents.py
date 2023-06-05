@@ -17,6 +17,9 @@ from langchain.agents import create_sql_agent
 from langchain.agents.agent_toolkits import SQLDatabaseToolkit
 from langchain.sql_database import SQLDatabase
 from sqlalchemy import event
+from langchain.retrievers.self_query.base import SelfQueryRetriever
+from langchain.chains.query_constructor.base import AttributeInfo
+from typing import List, Optional
 
 import pinecone 
 
@@ -38,6 +41,9 @@ def governance_expert(model_name: str = "gpt-4", memory_window_size = 5, verbose
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
     PINECONE_API_ENV = os.getenv("PINECONE_API_ENV")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+    POLKADOT_WIKI_NAMESPACE = os.getenv("POLKADOT_WIKI_NAMESPACE")
+    PROPOSAL_NAMESPACE = os.getenv("PROPOSAL_NAMESPACE")
+    DB_URL = os.getenv("DB_URL")
 
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
     pinecone.init(
@@ -105,6 +111,9 @@ def polkadot_expert(model_name: str = "gpt-4", memory_window_size = 5, similarit
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
     PINECONE_API_ENV = os.getenv("PINECONE_API_ENV")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+    POLKADOT_WIKI_NAMESPACE = os.getenv("POLKADOT_WIKI_NAMESPACE")
+    PROPOSAL_NAMESPACE = os.getenv("PROPOSAL_NAMESPACE")
+    DB_URL = os.getenv("DB_URL")
 
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
     pinecone.init(
@@ -200,9 +209,7 @@ def general_expert(model_name: str = "gpt-4", memory_window_size = 5, similarity
         description=RETRIEVAL_TOOL_TEMPALTE.format(
             source_description="polkadot, it has information on how it works, how to build on it and how to setup nodes and run the network"
         ),
-        filter={
-            "type":"docs"
-        },
+        namespace=POLKADOT_WIKI_NAMESPACE,
         verbose=verbose
     ))
 
@@ -213,9 +220,7 @@ def general_expert(model_name: str = "gpt-4", memory_window_size = 5, similarity
         description=RETRIEVAL_TOOL_TEMPALTE.format(
             source_description="proposals"
         ),
-        filter={
-            "type":"proposals"
-        },
+        namespace=PROPOSAL_NAMESPACE,
         verbose=verbose
     ))
 
@@ -258,6 +263,8 @@ def multiagent_expert(model_name: str = "gpt-4", memory_window_size = 5, similar
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
     PINECONE_API_ENV = os.getenv("PINECONE_API_ENV")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+    POLKADOT_WIKI_NAMESPACE = os.getenv("POLKADOT_WIKI_NAMESPACE")
+    PROPOSAL_NAMESPACE = os.getenv("PROPOSAL_NAMESPACE")
     DB_URL = os.getenv("DB_URL")
 
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -279,24 +286,31 @@ def multiagent_expert(model_name: str = "gpt-4", memory_window_size = 5, similar
         description=RETRIEVAL_TOOL_TEMPALTE.format(
             source_description="polkadot, it has information on how it works, how to build on it and how to setup nodes and run the network"
         ),
-        filter={
-            "type":"docs"
-        },
+        document_contents='Information about polkadot on how it works, how to build on it and how to setup nodes and run the network',
+        namespace=POLKADOT_WIKI_NAMESPACE,
         verbose=verbose
     ))
 
-    # tools.append(_get_retrieval_tool(
-    #     llm=llm,
-    #     vector_store=vector_store,
-    #     name="Proposals Vector DB",
-    #     description=RETRIEVAL_TOOL_TEMPALTE.format(
-    #         source_description="the content of proposals"
-    #     ),
-    #     filter={
-    #         "type":"proposals"
-    #     },
-    #     verbose=verbose
-    # ))
+    metadata_field_info=[
+        AttributeInfo(
+            name="governance_proposal_path",
+            description="The path of the proposal, the path format is: network_name/proposal_type/id", 
+            type="string", 
+        )
+    ]
+
+    tools.append(_get_retrieval_tool(
+        llm=llm,
+        vector_store=vector_store,
+        name="Proposals Vector DB",
+        description=RETRIEVAL_TOOL_TEMPALTE.format(
+            source_description="the content of a specific proposal, objective, milestones, budget, team, etc. Make sure to include the proposal path in the question"
+        ),
+        namespace=PROPOSAL_NAMESPACE,
+        document_contents='proposal details',
+        metadata_field_info=metadata_field_info,
+        verbose=verbose
+    ))
 
     db = SQLDatabase.from_uri(DB_URL)
     toolkit = SQLDatabaseToolkit(db=db, llm=llm)
@@ -351,107 +365,220 @@ def multiagent_expert(model_name: str = "gpt-4", memory_window_size = 5, similar
 
     return agent
 
-def multiagent_expert_2(model_name: str = "gpt-4", memory_window_size = 5, similarity_threshold:float = 0.76, verbose: bool = False)  -> AgentExecutor:
+# def multiagent_expert_3(model_name: str = "gpt-4", memory_window_size = 5, similarity_threshold:float = 0.76, verbose: bool = False)  -> AgentExecutor:
 
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-    PINECONE_API_ENV = os.getenv("PINECONE_API_ENV")
-    PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+#     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+#     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+#     PINECONE_API_ENV = os.getenv("PINECONE_API_ENV")
+#     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+#     DB_URL = os.getenv("DB_URL")
 
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-    pinecone.init(
-        api_key=PINECONE_API_KEY,  # find at app.pinecone.io
-        environment=PINECONE_API_ENV  # next to api key in console
-    )
-    vector_store = Pinecone.from_existing_index(
-        index_name=PINECONE_INDEX_NAME, embedding=embeddings)
-    llm = ChatOpenAI(
-        temperature=0, openai_api_key=OPENAI_API_KEY, model_name=model_name)
+#     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+#     pinecone.init(
+#         api_key=PINECONE_API_KEY,  # find at app.pinecone.io
+#         environment=PINECONE_API_ENV  # next to api key in console
+#     )
+#     vector_store = Pinecone.from_existing_index(
+#         index_name=PINECONE_INDEX_NAME, embedding=embeddings)
+#     llm = ChatOpenAI(
+#         temperature=0, openai_api_key=OPENAI_API_KEY, model_name=model_name)
     
-    tools = load_tools(tool_names=['llm-math'], llm=llm)
+#     tools = load_tools(tool_names=['llm-math'], llm=llm)
 
-    tools.append(_get_retrieval_tool(
-        llm=llm,
-        vector_store=vector_store,
-        name="Polkadot Wiki",
-        description=RETRIEVAL_TOOL_TEMPALTE.format(
-            source_description="polkadot, it has information on how it works, how to build on it and how to setup nodes and run the network"
-        ),
-        filter={
-            "type":"docs"
-        },
-        verbose=verbose
-    ))
+#     tools.append(_get_retrieval_tool(
+#         llm=llm,
+#         vector_store=vector_store,
+#         name="Polkadot Wiki",
+#         description=RETRIEVAL_TOOL_TEMPALTE.format(
+#             source_description="polkadot, it has information on how it works, how to build on it and how to setup nodes and run the network"
+#         ),
+#         filter={
+#             "type":"docs"
+#         },
+#         verbose=verbose
+#     ))
 
-    tools.append(_get_retrieval_tool(
-        llm=llm,
-        vector_store=vector_store,
-        name="Proposals DB",
-        description=RETRIEVAL_TOOL_TEMPALTE.format(
-            source_description="proposals"
-        ),
-        filter={
-            "type":"proposals"
-        },
-        verbose=verbose
-    ))
+#     # tools.append(_get_retrieval_tool(
+#     #     llm=llm,
+#     #     vector_store=vector_store,
+#     #     name="Proposals Vector DB",
+#     #     description=RETRIEVAL_TOOL_TEMPALTE.format(
+#     #         source_description="the content of proposals"
+#     #     ),
+#     #     filter={
+#     #         "type":"proposals"
+#     #     },
+#     #     verbose=verbose
+#     # ))
 
-    data_path = os.path.join(os.path.dirname(__file__), "../data/Chinook.db")
-    print(f"Data path: {data_path}")
-    db = SQLDatabase.from_uri(f"sqlite:///{data_path}")
-    toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+#     db = SQLDatabase.from_uri(DB_URL)
+#     toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 
-    music_agent = create_sql_agent(
-        llm=llm,
-        toolkit=toolkit,
-        verbose=True
-    )
+#     music_agent = create_sql_agent(
+#         llm=llm,
+#         toolkit=toolkit,
+#         verbose=True
+#     )
 
-    tools.append(AgentAsTool(
-        name="Music Store DB",
-        description="""Use this tool to answer user questions about the music store and the music store database structure, you should pass
-        in the user question related to the proposal with as little modification as possible.
-        This tool can also be used for follow up questions from the user.""",
-        agent=music_agent
-    ))
+#     tools.append(AgentAsTool(
+#         name="Proposals SQL DB",
+#         # description="""Use this tool to answer user questions about information related to proposals but not their content and about the proposals database structure, you should pass
+#         # in the user question related to the proposal with as little modification as possible.
+#         # This tool can also be used for follow up questions from the user.""",
+#         description="""Use this tool to answer user questions about information related to proposals and the comments and reactions to them, you should pass
+#         in the user question related to the proposal with as little modification as possible.
+#         This tool can also be used for follow up questions from the user.""",
+#         agent=music_agent
+#     ))
 
-    memory = ConversationBufferWindowMemory(
-        # important to align with agent prompt (below)
-        memory_key="chat_history",
-        k=memory_window_size,
-        return_messages=True
-    )
+#     memory = ConversationBufferWindowMemory(
+#         # important to align with agent prompt (below)
+#         memory_key="chat_history",
+#         k=memory_window_size,
+#         return_messages=True
+#     )
 
-    agent = initialize_agent(
-        agent="chat-conversational-react-description",
-        llm=llm,
-        tools=tools,
-        verbose=verbose,
-        max_iterations=2,
-        early_stopping_method="generate",
-        memory=memory)
+#     agent = initialize_agent(
+#         agent="chat-conversational-react-description",
+#         llm=llm,
+#         tools=tools,
+#         verbose=verbose,
+#         max_iterations=2,
+#         early_stopping_method="generate",
+#         memory=memory)
 
-    sys_msg = (
-        "You are an expert on the polkadot blockchain, you are able to answer user questions "
-        "in an easy to understand way always providing the important details."
-        "When users ask information you refer to the relevant tools "
-        "when needed, allowing you to answer questions about polkadot.\n"
-        "When external information is used you MUST add your sources to the end "
-        "of responses, the format should be: SOURCES:[s1,s2,...]"
-    )
+#     sys_msg = (
+#         "You are an expert on the polkadot blockchain, you are able to answer user questions "
+#         "in an easy to understand way always providing the important details."
+#         "When users ask information you refer to the relevant tools "
+#         "when needed, allowing you to answer questions about polkadot.\n"
+#         "When external information is used you MUST add your sources to the end "
+#         "of responses, the format should be: SOURCES:[s1,s2,...]"
+#     )
 
-    prompt = agent.agent.create_prompt(
-        system_message=sys_msg,
-        tools=tools
-    )
-    agent.agent.llm_chain.prompt = prompt
+#     prompt = agent.agent.create_prompt(
+#         system_message=sys_msg,
+#         tools=tools
+#     )
+#     agent.agent.llm_chain.prompt = prompt
 
-    return agent
+#     return agent
+
+# def multiagent_expert_2(model_name: str = "gpt-4", memory_window_size = 5, similarity_threshold:float = 0.76, verbose: bool = False)  -> AgentExecutor:
+
+#     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+#     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+#     PINECONE_API_ENV = os.getenv("PINECONE_API_ENV")
+#     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+
+#     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+#     pinecone.init(
+#         api_key=PINECONE_API_KEY,  # find at app.pinecone.io
+#         environment=PINECONE_API_ENV  # next to api key in console
+#     )
+#     vector_store = Pinecone.from_existing_index(
+#         index_name=PINECONE_INDEX_NAME, embedding=embeddings)
+#     llm = ChatOpenAI(
+#         temperature=0, openai_api_key=OPENAI_API_KEY, model_name=model_name)
+    
+#     tools = load_tools(tool_names=['llm-math'], llm=llm)
+
+#     tools.append(_get_retrieval_tool(
+#         llm=llm,
+#         vector_store=vector_store,
+#         name="Polkadot Wiki",
+#         description=RETRIEVAL_TOOL_TEMPALTE.format(
+#             source_description="polkadot, it has information on how it works, how to build on it and how to setup nodes and run the network"
+#         ),
+#         filter={
+#             "type":"docs"
+#         },
+#         verbose=verbose
+#     ))
+
+#     tools.append(_get_retrieval_tool(
+#         llm=llm,
+#         vector_store=vector_store,
+#         name="Proposals DB",
+#         description=RETRIEVAL_TOOL_TEMPALTE.format(
+#             source_description="proposals"
+#         ),
+#         filter={
+#             "type":"proposals"
+#         },
+#         verbose=verbose
+#     ))
+
+#     data_path = os.path.join(os.path.dirname(__file__), "../data/Chinook.db")
+#     print(f"Data path: {data_path}")
+#     db = SQLDatabase.from_uri(f"sqlite:///{data_path}")
+#     toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+
+#     music_agent = create_sql_agent(
+#         llm=llm,
+#         toolkit=toolkit,
+#         verbose=True
+#     )
+
+#     tools.append(AgentAsTool(
+#         name="Music Store DB",
+#         description="""Use this tool to answer user questions about the music store and the music store database structure, you should pass
+#         in the user question related to the proposal with as little modification as possible.
+#         This tool can also be used for follow up questions from the user.""",
+#         agent=music_agent
+#     ))
+
+#     memory = ConversationBufferWindowMemory(
+#         # important to align with agent prompt (below)
+#         memory_key="chat_history",
+#         k=memory_window_size,
+#         return_messages=True
+#     )
+
+#     agent = initialize_agent(
+#         agent="chat-conversational-react-description",
+#         llm=llm,
+#         tools=tools,
+#         verbose=verbose,
+#         max_iterations=2,
+#         early_stopping_method="generate",
+#         memory=memory)
+
+#     sys_msg = (
+#         "You are an expert on the polkadot blockchain, you are able to answer user questions "
+#         "in an easy to understand way always providing the important details."
+#         "When users ask information you refer to the relevant tools "
+#         "when needed, allowing you to answer questions about polkadot.\n"
+#         "When external information is used you MUST add your sources to the end "
+#         "of responses, the format should be: SOURCES:[s1,s2,...]"
+#     )
+
+#     prompt = agent.agent.create_prompt(
+#         system_message=sys_msg,
+#         tools=tools
+#     )
+#     agent.agent.llm_chain.prompt = prompt
+
+#     return agent
 
 
-def  _get_retrieval_tool(llm: Optional[BaseLanguageModel], vector_store: VectorStore, name: str, description:  str, filter: Optional[dict], similarity_threshold: float = 0.76, verbose=False):
+def  _get_retrieval_tool(llm: Optional[BaseLanguageModel], vector_store: VectorStore, name: str, description:  str, namespace: Optional[str], document_contents: str, similarity_threshold: float = 0.76, metadata_field_info: Optional[List[AttributeInfo]] = None, verbose=False):
     # retriever = vector_store.as_retriever(search_type="similarity_score_threshold", search_kwargs={"score_threshold":similarity_threshold,  "k":10})
-    retriever = vector_store.as_retriever(search_kwargs={"filter":filter,  "k":4})
+
+    if metadata_field_info:
+        retriever = SelfQueryRetriever.from_llm(
+            llm=llm,
+            vectorstore=vector_store,
+            document_contents=document_contents,
+            metadata_field_info=metadata_field_info,
+            search_kwargs={
+                "namespace": namespace
+            },
+            verbose=verbose
+        )
+    else:
+        retriever = vector_store.as_retriever(search_kwargs={"namespace":namespace,  "k":4})
+
     chain = RetrievalQAWithSourcesChain.from_chain_type(
         llm=llm, chain_type="stuff", retriever=retriever, verbose=verbose)
     tool_chain = ConcatenateChain(input_chain=chain, keys=["answer", "sources"], output_key="answer", verbose=verbose)

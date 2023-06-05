@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import Counter
 from pydantic import BaseModel, validator, root_validator
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union, Set, Tuple
 from utils import clean_text, remove_plural, to_dict
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -25,7 +25,7 @@ class BaseProposalDetector(ABC, BaseModel):
 
 
 class KeywordProposalDetector(BaseProposalDetector):
-    keywords: set = {'proposal', 'scope', 'objective', 'budget', 'deliverable', 'milestone'}
+    keywords: Set[Union[str, Tuple[str, int]]] = {('proposal',  4), 'scope', 'objective', 'budget', 'deliverable', 'milestone'}
     keywords_weight: float = 1
     title_words_weight: float = 1.5
     
@@ -34,6 +34,8 @@ class KeywordProposalDetector(BaseProposalDetector):
         title_tokens = set(self._tokenize(title))
         doc_tokens = self._tokenize(document)
         kwords = to_dict(title_tokens)
+        for kw in self.keywords:
+           kwords[self._get_keyword(kw)] = True
         kwords = to_dict(self.keywords, kwords)
         matches = Counter(token for token in doc_tokens if token in kwords)  
         keywords_score = self._score(matches, self.keywords)
@@ -43,14 +45,24 @@ class KeywordProposalDetector(BaseProposalDetector):
 
         return (keywords_score * self.keywords_weight + title_words_score * self.title_words_weight)/(self.title_words_weight + self.keywords_weight)
         
-    
+    def _get_keyword(self, keyword_entry: Union[str, dict]) -> str:
+         return keyword_entry if type(keyword_entry) == str else keyword_entry[0]
+
+    def _get_weight(self, keyword_entry: Union[str, dict]) -> int:
+         return 1 if type(keyword_entry) == str else keyword_entry[1]
+
     def _score(self, matches: Counter, kwords: list) -> float:
+      if len(kwords) == 0:
+          return 0
       count = 0
+      total_weight = 0
       for kw in kwords:
-        if kw in matches:
-           count += 1    
+        weight = self._get_weight(kw)
+        total_weight += weight
+        if self._get_keyword(kw) in matches:
+           count += weight    
       
-      return count / len(kwords)
+      return count / total_weight
 
     def _tokenize(self, text: str) -> List:
         stop_words = set(stopwords.words('english'))

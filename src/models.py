@@ -26,7 +26,7 @@ class Network(Base):
 class User(Base):
     __tablename__ = 'user'
     user_id = Column(BigInteger, primary_key=True)
-    username = Column(Text, nullable=False)
+    username = Column(String(100), nullable=False)
     web3_signup = Column(Boolean, nullable=False)
 
     @classmethod
@@ -80,10 +80,11 @@ class GovernanceProposal(Base):
     __tablename__ = 'governance_proposal'
     governance_proposal_id = Column(UUID(as_uuid=True), primary_key=True)
     governance_proposal_logical_id = Column(String(100), nullable=False)
+    governance_proposal_path = Column(String(100), nullable=False)
     network_id = Column(String(50), ForeignKey(
         'network.network_id'), nullable=False)
     user_id = Column(BigInteger, ForeignKey('user.user_id'), nullable=False)
-    proposer_address = Column(String(50), nullable=False)
+    proposer_address = Column(String(70), nullable=False)
     title = Column(Text, nullable=True)
     content = Column(Text, nullable=True)
     content_length = Column(Integer, nullable=False)
@@ -108,6 +109,7 @@ class GovernanceProposal(Base):
         return GovernanceProposal(
             governance_proposal_id=uuid.uuid4(),
             governance_proposal_logical_id=doc["id"],
+            governance_proposal_path=doc["governance_proposal_path"],
             network_id=doc["network_id"],
             user_id=doc["user_id"],
             proposer_address=doc["proposer_address"],
@@ -145,9 +147,6 @@ class GovernanceProposal(Base):
             raise LookupError(
                 f"Governance proposal with id: {governance_proposal_id} not found")
 
-    @property
-    def get_path(self) -> str:
-        return f"{self.network_id}/{self.governance_proposal_type_id}/{self.governance_proposal_logical_id}"
 
 
 class Comment(Base):
@@ -155,7 +154,7 @@ class Comment(Base):
     comment_id = Column(UUID(as_uuid=True), primary_key=True)
     comment_logical_id = Column(String(100), nullable=False)
     user_id = Column(BigInteger, ForeignKey('user.user_id'), nullable=False)
-    user_address = Column(Text, nullable=True)
+    user_address = Column(String(70), nullable=True)
     content = Column(Text, nullable=False)
     governance_proposal_id = Column(UUID(as_uuid=True), ForeignKey(
         'governance_proposal.governance_proposal_id'), nullable=False)
@@ -193,7 +192,7 @@ class Reaction(Base):
     governance_proposal_id = Column(UUID(as_uuid=True), ForeignKey(
         'governance_proposal.governance_proposal_id'), nullable=False)
     user_id = Column(BigInteger, ForeignKey('user.user_id'), nullable=False)
-    user_address = Column(String(50), nullable=True)
+    user_address = Column(String(70), nullable=True)
     reaction = Column(SmallInteger, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False)
     updated_at = Column(DateTime(timezone=True))
@@ -216,8 +215,10 @@ class Reaction(Base):
 
 # Create the indexes
 
-index_proposer_address = Index(
+index_governance_proposal_logical_id = Index(
     'governance_proposal_logical_id_idx', GovernanceProposal.governance_proposal_logical_id)
+index_governance_proposal_path = Index(
+    'governance_proposal_path_idx', GovernanceProposal.governance_proposal_path)
 index_proposer_address = Index(
     'governance_proposal_proposer_address_idx', GovernanceProposal.proposer_address)
 index_last_comment_at = Index(

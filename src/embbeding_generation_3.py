@@ -21,11 +21,12 @@ def main():
     PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
     PINECONE_API_ENV = os.getenv("PINECONE_API_ENV")
     PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+    POLKADOT_WIKI_NAMESPACE = os.getenv("POLKADOT_WIKI_NAMESPACE")
     APIFY_API_TOKEN = os.getenv("APIFY_API_TOKEN")
 
 
     loader = ApifyDatasetLoader(
-        dataset_id="0aue91DksrPRRyOVm",
+        dataset_id="91vDXOwK0F1Slysam",
         dataset_mapping_function=map_to_docs)   
 
     docs = loader.load()
@@ -54,7 +55,7 @@ def main():
         api_key=PINECONE_API_KEY,  # find at app.pinecone.io
         environment=PINECONE_API_ENV  # next to api key in console
     )
-    Pinecone.from_documents(documents=split_docs, embedding=embeddings, index_name=PINECONE_INDEX_NAME)
+    Pinecone.from_documents(documents=split_docs, embedding=embeddings, index_name=PINECONE_INDEX_NAME, namespace=POLKADOT_WIKI_NAMESPACE)
 
     print("Stored embeddings.")
 

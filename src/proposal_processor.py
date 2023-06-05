@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from pydantic import BaseModel, validator, root_validator, PrivateAttr
+from pydantic import BaseModel, Extra, validator, root_validator, PrivateAttr
 from models import GovernanceProposal, RecordState
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
@@ -29,6 +29,7 @@ class ProposalProcessor(ABC, BaseModel):
     document_store: BaseDocumentStore
     _session_maker: sessionmaker = PrivateAttr()
 
+
     def __init__(self, **data):
         super().__init__(**data)
         engine = create_engine(self.db_url)
@@ -37,7 +38,8 @@ class ProposalProcessor(ABC, BaseModel):
     def process(self):
         with self._session_maker() as session:
             # proposals = GovernanceProposal.find_unprocessed(network_id="polkadot", governance_proposal_type_id="treasury_proposals", session=session)
-            proposals = GovernanceProposal.get_by_id(governance_proposal_id="11eef5f2-0403-4928-9fee-ba42d3a475a0", session=session)
+            proposals = GovernanceProposal.get_by_id(governance_proposal_id="04a98136-53d7-4ac5-84ab-4c8976b89192", session=session)
+        # proposals = proposals[:20]
         proposals = [proposals]
         for proposal in proposals:
             try:
@@ -46,28 +48,30 @@ class ProposalProcessor(ABC, BaseModel):
                   doc = Document(
                       page_content=content["text"],
                       metadata={
-                          "proposal_id": proposal.governance_proposal_id,
+                          "governance_proposal_path": proposal.governance_proposal_path,
+                          "governance_proposal_db_id": str(proposal.governance_proposal_id),
                           "source": content["source"],
                           "network": proposal.network_id,
-                          "proposal_type": proposal.governance_proposal_type_id,
-                          "title": proposal.title,
-                          "chunk-context": proposal.title,
+                          "governance_proposal_type": proposal.governance_proposal_type_id,
+                          "governance_proposal_title": proposal.title,
+                          "chunk-context": f"{proposal.title}\nproposal path: {proposal.governance_proposal_path}",
                           "type": "proposal",
                       }
                   )
-                  summary = self.summarizer.summarize(doc)
+                #   summary = self.summarizer.summarize(doc)
                   self.document_store.store(doc)
-                  proposal.summary = summary
-                  proposal.record_state =  RecordState.PROCESSED
+                #   proposal.summary = summary
+                  proposal.record_state_id =  RecordState.PROCESSED
                   with self._session_maker() as session:
                       session.merge(proposal)
+                      session.commit()
             except Exception as e:
-                logger.error(e)
+                logger.error("An error occurred: %s", str(e), exc_info=True)
     
     def _get_content(self, proposal: GovernanceProposal) -> Optional[dict]:
         text = proposal.content
         title = proposal.title
-        logger.debug(f"\n\nprocessing proposal: {proposal.governance_proposal_id}, title: {title}")
+        logger.debug(f"\n\nprocessing proposal: {proposal.governance_proposal_id}, path: {proposal.governance_proposal_path} title: {title}")
 
         if should_filter(self.content_filters, text):
             return None
