@@ -12,7 +12,7 @@ from typing import Optional, List
 from langchain.schema import Document
 from proposal_detector import BaseProposalDetector
 from document_stores import BaseDocumentStore
-from Summarizers import BaseSummarizer
+from summarizers import BaseSummarizer
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
@@ -37,10 +37,10 @@ class ProposalProcessor(ABC, BaseModel):
 
     def process(self):
         with self._session_maker() as session:
-            # proposals = GovernanceProposal.find_unprocessed(network_id="polkadot", governance_proposal_type_id="treasury_proposals", session=session)
-            proposals = GovernanceProposal.get_by_id(governance_proposal_id="04a98136-53d7-4ac5-84ab-4c8976b89192", session=session)
-        # proposals = proposals[:20]
-        proposals = [proposals]
+            proposals = GovernanceProposal.find_unprocessed(network_id="polkadot", governance_proposal_type_id="treasury_proposals", session=session)
+            # proposals = GovernanceProposal.get_by_id(governance_proposal_id="04a98136-53d7-4ac5-84ab-4c8976b89192", session=session)
+        proposals = proposals[:20]
+        # proposals = [proposals]
         for proposal in proposals:
             try:
               content = self._get_content(proposal)
@@ -49,7 +49,7 @@ class ProposalProcessor(ABC, BaseModel):
                       page_content=content["text"],
                       metadata={
                           "governance_proposal_path": proposal.governance_proposal_path,
-                          "governance_proposal_db_id": str(proposal.governance_proposal_id),
+                          "governance_proposal_id": str(proposal.governance_proposal_id),
                           "source": content["source"],
                           "network": proposal.network_id,
                           "governance_proposal_type": proposal.governance_proposal_type_id,
@@ -58,15 +58,16 @@ class ProposalProcessor(ABC, BaseModel):
                           "type": "proposal",
                       }
                   )
-                #   summary = self.summarizer.summarize(doc)
+                  summary = self.summarizer.summarize(doc)
                   self.document_store.store(doc)
-                #   proposal.summary = summary
+                  proposal.summary = summary
                   proposal.record_state_id =  RecordState.PROCESSED
-                  with self._session_maker() as session:
-                      session.merge(proposal)
-                      session.commit()
             except Exception as e:
                 logger.error("An error occurred: %s", str(e), exc_info=True)
+                proposal.record_state_id =  RecordState.UNABLE_TO_PROCESS
+            with self._session_maker() as session:
+                session.merge(proposal)
+                session.commit()
     
     def _get_content(self, proposal: GovernanceProposal) -> Optional[dict]:
         text = proposal.content

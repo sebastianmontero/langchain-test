@@ -37,7 +37,7 @@ def main():
     content = remove_code_sections(content)
     print(f"length after removing code sections: {len(content)}")
     docs = [
-        Document(page_content=content, metadata={"id":gp.governance_proposal_id, "source":gp.path, "chunk-context": gp.title})
+        Document(page_content=content, metadata={"id":gp.governance_proposal_id, "source":gp.governance_proposal_path, "chunk-context": gp.title})
     ]
 
     text_splitter = MarkdownTextSplitterWithContext(chunk_size=2000, chunk_overlap=0)

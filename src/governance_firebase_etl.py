@@ -27,7 +27,8 @@ session_maker = sessionmaker(bind=engine)
 def load_record_states():
     record_states = [
         RecordState(record_state_id=RecordState.PENDING, record_state="PENDING"),
-        RecordState(record_state_id=RecordState.PROCESSED, record_state="PROCESSED")
+        RecordState(record_state_id=RecordState.PROCESSED, record_state="PROCESSED"),
+        RecordState(record_state_id=RecordState.UNABLE_TO_PROCESS, record_state="UNABLE_TO_PROCESS")
     ]    
     with session_maker() as session:
         # Stream the documents from the collection

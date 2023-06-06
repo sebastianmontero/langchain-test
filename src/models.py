@@ -12,6 +12,7 @@ Base = declarative_base()
 class RecordState(Base):
     PENDING = 1
     PROCESSED = 2
+    UNABLE_TO_PROCESS = 3
     __tablename__ = 'record_state'
     record_state_id = Column(SmallInteger, primary_key=True)
     record_state = Column(String(50), nullable=False)

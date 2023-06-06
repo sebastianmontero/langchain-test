@@ -12,7 +12,7 @@ import pinecone
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Pinecone
 from document_stores import VectorDocumentStore
-from Summarizers import Summarizer
+from summarizers import Summarizer
 
 load_dotenv()
 # logging.basicConfig(level=logging.DEBUG)

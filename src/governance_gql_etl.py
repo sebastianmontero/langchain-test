@@ -66,7 +66,7 @@ def update_proposals(network_id: str, governance_proposal_type_id: str):
                 max_reward = reward
                 index = proposal.governance_proposal_logical_id
             proposal.reward = result["reward"]
-            proposal.status = result["status"]
+            proposal.status = result["status"].lower()
             print(f"{result}\n\n")
             # session.merge(record_state)
         print(f"max_reward:{max_reward}, index: {index}")
