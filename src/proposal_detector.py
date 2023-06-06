@@ -32,6 +32,7 @@ class KeywordProposalDetector(BaseProposalDetector):
     def is_proposal(self, title: str, document: str) -> float:
         """Wether this scraper can handle the provided url"""
         title_tokens = set(self._tokenize(title))
+        logger.debug(f"title tokens: {title_tokens}")
         doc_tokens = self._tokenize(document)
         kwords = to_dict(title_tokens)
         for kw in self.keywords:

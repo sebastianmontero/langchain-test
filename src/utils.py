@@ -19,7 +19,7 @@ def get_domain(url: str) -> str:
     return domain
 
 def clean_text(text: str) -> str:
-    text = re.sub(r'[^\w\s]', '', text)
+    text = re.sub(r'[^\w\s]', ' ', text)
     return text
 
 def remove_plural(token: str) -> str:

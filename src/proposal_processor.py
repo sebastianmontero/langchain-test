@@ -37,10 +37,10 @@ class ProposalProcessor(ABC, BaseModel):
 
     def process(self):
         with self._session_maker() as session:
-            proposals = GovernanceProposal.find_unprocessed(network_id="polkadot", governance_proposal_type_id="treasury_proposals", session=session)
-            # proposals = GovernanceProposal.get_by_id(governance_proposal_id="04a98136-53d7-4ac5-84ab-4c8976b89192", session=session)
-        proposals = proposals[:20]
-        # proposals = [proposals]
+            # proposals = GovernanceProposal.find_unprocessed(network_id="polkadot", governance_proposal_type_id="treasury_proposals", session=session)
+            proposals = GovernanceProposal.get_by_id(governance_proposal_id="271a34bc-17ef-4520-a2e1-4dba63aba8be", session=session)
+        # proposals = proposals[:20]
+        proposals = [proposals]
         for proposal in proposals:
             try:
               content = self._get_content(proposal)
