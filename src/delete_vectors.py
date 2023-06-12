@@ -2,8 +2,9 @@ from dotenv import load_dotenv
 import pinecone
 import os
 import argparse
+from typing import Optional
 
-def delete_vectors(namespace: str):
+def delete_vectors(namespace: str, proposal_path: Optional[str]):
 
     load_dotenv()
 
@@ -18,15 +19,26 @@ def delete_vectors(namespace: str):
     # Connect to an existing index
     index = pinecone.Index(index_name=PINECONE_INDEX_NAME)
 
-    index.delete(
-        delete_all=True,
-        namespace=namespace
-    )    
+    result = None
+    if proposal_path:
+        print(f"Deleting indexes in namespace: {namespace} and proposal_path: {proposal_path}")
+        result = index.delete(
+            filter={"governance_proposal_path": {"$eq": proposal_path}},
+            namespace=namespace
+        ) 
+    else:
+        print(f"Deleting indexes in namespace: {namespace}")
+        result = index.delete(
+            delete_all=True,
+            namespace=namespace
+        )    
+    print(f"Result from the deleting operation: {result}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deletes the vectors from a namespace")
     parser.add_argument("namespace", help="The namespace to delete vectors from")
+    parser.add_argument('--proposal_path', help='Proposal path argument (optional)')
     args = parser.parse_args()
 
-    delete_vectors(args.namespace)
+    delete_vectors(args.namespace, args.proposal_path)

@@ -19,6 +19,7 @@ from langchain.chains.query_constructor.base import AttributeInfo
 from langchain.memory import ChatMessageHistory
 from langchain.schema import messages_from_dict
 from typing import List, Optional
+from toolkit import ConservativeSQLDatabaseToolkit
 
 import pinecone 
 
@@ -291,8 +292,66 @@ def multiagent_expert(model_name: str = "gpt-4", memory_window_size: Optional[in
         verbose=verbose
     ))
 
-    db = SQLDatabase.from_uri(DB_URL)
-    toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+    custom_table_info = {
+        "governance_proposal": """CREATE TABLE governance_proposal (
+	governance_proposal_id UUID NOT NULL, 
+	governance_proposal_path VARCHAR(100) NOT NULL, 
+	network_id VARCHAR(50) NOT NULL, 
+	user_id BIGINT NOT NULL, 
+	proposer_address VARCHAR(70) NOT NULL, 
+	title TEXT, 
+	content TEXT, 
+	summary TEXT, 
+	reward NUMERIC(38, 0), 
+	status VARCHAR(50), 
+	governance_proposal_type_id VARCHAR(70) NOT NULL, 
+	last_comment_at TIMESTAMP WITH TIME ZONE, 
+	last_edited_at TIMESTAMP WITH TIME ZONE, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_at TIMESTAMP WITH TIME ZONE, 
+	record_state_id SMALLINT NOT NULL, 
+	CONSTRAINT governance_proposal_pkey PRIMARY KEY (governance_proposal_id), 
+	CONSTRAINT governance_proposal_governance_proposal_type_id_fkey FOREIGN KEY(governance_proposal_type_id) REFERENCES governance_proposal_type (governance_proposal_type_id), 
+	CONSTRAINT governance_proposal_network_id_fkey FOREIGN KEY(network_id) REFERENCES network (network_id), 
+	CONSTRAINT governance_proposal_record_state_id_fkey FOREIGN KEY(record_state_id) REFERENCES record_state (record_state_id), 
+	CONSTRAINT governance_proposal_user_id_fkey FOREIGN KEY(user_id) REFERENCES "user" (user_id)
+)
+
+/*
+2 rows from governance_proposal table:
+governance_proposal_id	governance_proposal_path	network_id	user_id	proposer_address	title	content	summary	reward	status	governance_proposal_type_id	last_comment_at	last_edited_at	created_at	updated_at	record_state_id
+4247d572-ea4c-4354-ab8e-de6adacd7daf	acala/council_motions/10	acala	1	23RDJ7SyVgpKqC6M9ad8wvbBsbSr3R4Xqr5NQAKEhWPHbLbs	Runtime Upgrade - Update Substrate / Cumulus / Polkadot version	This is a full release that upgrades version to v0.9.16	None	None	None	council_motions	None	2023-05-04 02:36:11.564000+00:00	2022-02-16 03:46:36.271000+00:00	None	1
+271a34bc-17ef-4520-a2e1-4dba63aba8be	polkadot/treasury_proposals/191	polkadot	2477	12mP4sjCfKbDyMRAEyLpkeHeoYtS5USY4x34n9NMwQrcEyoh	PolkaWorld Ops and Maintenance proposal	This is a proposal to seek to cover the next three months of ops and maintenance	Cover the next period of ops and maintenance costs	133260000000000	awarded	treasury_proposals	2023-05-04 02:39:11.564000+00:00	2023-05-04 02:36:10.745000+00:00	2022-02-20 02:16:18.446000+00:00	2022-02-20 03:16:18.446000+00:00	2
+*/""",
+    "reaction": """CREATE TABLE reaction (
+	reaction_id UUID NOT NULL, 
+	governance_proposal_id UUID NOT NULL, 
+	user_id BIGINT NOT NULL, 
+	user_address VARCHAR(70), 
+	reaction SMALLINT NOT NULL, 
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL, 
+	updated_at TIMESTAMP WITH TIME ZONE, 
+	CONSTRAINT reaction_pkey PRIMARY KEY (reaction_id), 
+	CONSTRAINT reaction_governance_proposal_id_fkey FOREIGN KEY(governance_proposal_id) REFERENCES governance_proposal (governance_proposal_id), 
+	CONSTRAINT reaction_user_id_fkey FOREIGN KEY(user_id) REFERENCES "user" (user_id)
+)
+
+/*
+2 rows from reaction table:
+reaction_id	governance_proposal_id	user_id	user_address	reaction	created_at	updated_at
+adcab79c-4feb-4e73-a47d-4fd6356c12d6	fbe0873c-0625-4b53-95a0-1b4cb994e12e	36	5CAzgAYHmZodWCxMVfYcA7dKdnoN4f1jQgx7XgMWk5P6SirR	1	2022-07-16 18:51:36.760496+00:00	2022-07-16 18:51:36.760496+00:00
+8513865d-326f-4c4e-a032-89891c2a4320	56148cb8-3717-4b91-9fdf-4fbce7e207c0	200	6hnTxdrJzBJ2eWGdvZyLNntdYqtbdz7QcTsC5NEyy71ZB7Ya	-1	2022-09-26 01:44:23.703521+00:00	2022-09-26 01:44:23.703521+00:00
+*/"""
+        }
+    
+    
+
+    db = SQLDatabase.from_uri(
+        DB_URL,
+        include_tables=["record_state", "governance_proposal", "reaction", "user", "comment"],
+        custom_table_info=custom_table_info
+        )
+    toolkit = ConservativeSQLDatabaseToolkit(db=db, llm=llm)
 
     sql_agent = create_sql_agent(
         llm=llm,
