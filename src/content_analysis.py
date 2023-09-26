@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 # from langchain.document_loaders import GoogleDriveLoader
-from models import GovernanceProposal
+from governance_common.models import GovernanceProposal
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import marko

@@ -6,7 +6,7 @@ from langchain.schema import Document
 from langchain_util.text_splitter import MarkdownTextSplitterWithContext
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from models import GovernanceProposal
+from governance_common.models import GovernanceProposal
 import re
 
 import pinecone

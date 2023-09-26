@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, Extra, validator, root_validator, PrivateAttr
-from models import GovernanceProposal, RecordState
+from governance_common.models import GovernanceProposal, RecordState
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import logging

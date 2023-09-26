@@ -1,4 +1,4 @@
-from models import User, Network, GovernanceProposalType, GovernanceProposal, Comment, Reaction, RecordState
+from governance_common.models import User, Network, GovernanceProposalType, GovernanceProposal, Comment, Reaction, RecordState
 from sqlalchemy import BigInteger
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy import create_engine

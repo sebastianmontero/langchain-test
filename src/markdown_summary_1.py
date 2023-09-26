@@ -4,7 +4,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from langchain.text_splitter import MarkdownTextSplitter
 from langchain.schema import Document
-from models import GovernanceProposal
+from governance_common.models import GovernanceProposal
 from langchain.chains.summarize import load_summarize_chain
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy import create_engine
