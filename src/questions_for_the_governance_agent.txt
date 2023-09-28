@@ -1,0 +1,24 @@
+Find the top 3 polkadot proposals of type treasury_proposal by net positive reaction, and provide their proposal path and summary
+
+Find the top 3 polkadot proposals by net positive reaction, and provide their proposal path and summary
+
+
+1. Proposal Path: polkadot/treasury_proposals/207, Summary: None, Net Positive Reaction: 31
+2. Proposal Path: polkadot/treasury_proposals/203, Summary: None, Net Positive Reaction: 25
+
+what is polkadots opengov
+what is the ratio of awarded proposals in polkadot
+
+Find the top 3 polkadot network proposals of type treasury_proposal by net reaction, and provide their proposal path, summary and reaction score
+
+who is the team behind the proposal with path polkadot/treasury_proposals/203
+
+what is the amount being requested by the proposal
+
+
+
+
+
+The top 3 Polkadot treasury proposals by net reaction are: 1. Proposal Path: polkadot/treasury_proposals/207, Summary: The Polkadot SF Ecosystem Meet-up Events proposal seeks 4,187 DOT to fund a series of six meet-up events in San Francisco, led by Oak Network, Gear, Moonbeam, Robonomics, and Crust Network. The goal is to establish a strong community presence. Net Reaction: 31. 2. Proposal Path: polkadot/treasury_proposals/203, Summary: Unit Masters is a Polkadot Treasury Grant Proposal that aims to improve blockchain literacy and skills for mainstream adoption. The free, 6-week master's program focuses on the Polkadot ecosystem, blockchain, tokenization, and the Web3 ecosystem. Net Reaction: 25. 3. Proposal Path: polkadot/treasury_proposals/175, Summary: The Polkadot community plans to represent the blockchain at this year's Web Summit and seeks Treasury funding to partially cover costs. Participation in the conference aims to promote mass adoption of web3, generate buzz around Polkadot, attract potential investors, and expand the community. Net Reaction: 20."
+
+
