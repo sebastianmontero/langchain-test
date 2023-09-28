@@ -1,4 +1,4 @@
-from models import GovernanceProposal, GovernanceProposalType
+from governance_common.models import GovernanceProposal, GovernanceProposalType
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import os
